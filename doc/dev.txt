@@ -1,0 +1,8 @@
+yarn add xterm
+yarn add xterm-addon-fit
+
+mkdir -p static
+
+cp -a node_modules/xterm/css/xterm.css static/
+cp -a node_modules/xterm/lib/xterm.js static/
+cp -a node_modules/xterm-addon-fit/lib/xterm-addon-fit.js static/

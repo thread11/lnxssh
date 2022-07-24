@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux SSH</title>
+<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+<link rel="stylesheet" href="static/xterm.css" />
+<script src="static/xterm.js"></script>
+<script src="static/xterm-addon-fit.js"></script>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+}
+.terminal {
+  width: 100%;
+  height: 100%;
+}
+</style>
+</head>
+<body>
+<div id="terminal" class="terminal"></div>
+
+<script>
+var url = 'ws://' + window.location.host + '/ws';
+
+function getUrlParameter(target) {
+  var params = window.location.search.substring(1);
+  var keyValues = params.split('&');
+  var i;
+  for (i = 0; i < keyValues.length; i++) {
+    var keyValue = keyValues[i].split('=');
+    if (keyValue.length === 2) {
+      if (keyValue[0] === target) {
+        return decodeURIComponent(keyValue[1]);
+      }
+    }
+  }
+  return undefined;
+}
+
+var host = getUrlParameter('host');
+var port = getUrlParameter('port');
+var user = getUrlParameter('user');
+var password = getUrlParameter('password');
+
+var params = new Array();
+if (host !== undefined) {
+  params.push('host=' + host);
+}
+if (port !== undefined) {
+  params.push('port=' + port);
+}
+if (user !== undefined) {
+  params.push('user=' + user);
+}
+if (password !== undefined) {
+  params.push('password=' + password);
+}
+
+params = params.join('&');
+if (params !== '') {
+  url = url + '?' + params;
+}
+
+var terminal = new Terminal({
+  convertEol: true,
+  cursorBlink: true,
+});
+
+var fitAddon = new FitAddon.FitAddon();
+terminal.loadAddon(fitAddon);
+
+terminal.open(document.getElementById('terminal'));
+terminal.write('Connecting...\n');
+
+// setTimeout(() => {
+//   fitAddon.fit();
+//   terminal.focus();
+// }, 100);
+
+var ws = new WebSocket(url);
+
+ws.onopen = function(event) {
+  console.log('ws.onopen', url)
+  fitAddon.fit();
+  terminal.focus();
+}
+
+ws.onclose = function(event) {
+  if (event.wasClean === true) {
+    console.log('ws closed cleanly');
+  } else {
+    console.log('ws closed dirtly');
+  }
+}
+
+ws.onerror = function(error) {
+  console.log('ws.onerror', error)
+}
+
+ws.onmessage = function(event) {
+  terminal.write(event.data);
+}
+
+terminal.onData(function(data) {
+  var msg = JSON.stringify({ action: 1, cmd: data });
+  console.log(msg)
+  ws.send(msg);
+});
+
+terminal.onResize(function({cols, rows}) {
+  var msg = JSON.stringify({ action: 2, cols: cols, rows: rows });
+  console.log(msg)
+  ws.send(msg);
+});
+
+window.addEventListener('resize', function() {
+  console.log('resize');
+  fitAddon.fit();
+});
+</script>
+</body>
+</html>
